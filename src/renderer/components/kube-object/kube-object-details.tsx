@@ -64,6 +64,7 @@ export function showDetails(selfLink = "", resetSelected = true) {
 }
 
 export function hideDetails() {
+  console.log("Hide details")
   showDetails();
 }
 

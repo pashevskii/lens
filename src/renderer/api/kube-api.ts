@@ -415,6 +415,20 @@ export class KubeApi<T extends KubeObject = any> {
     return parsed;
   }
 
+  async patch({name = "", namespace = "default"} = {}, data?: Partial<T>): Promise<T> {
+    await this.checkPreferredVersion();
+    const apiUrl = this.getUrl({ namespace, name });
+
+    const res = await this.request.patch(apiUrl, { data });
+    const parsed = this.parseResponse(res);
+
+    if (Array.isArray(parsed)) {
+      throw new Error(`PUT request to ${apiUrl} returned an array: ${JSON.stringify(parsed)}`);
+    }
+
+    return parsed;
+  }
+
   async delete({ name = "", namespace = "default" }) {
     await this.checkPreferredVersion();
     const apiUrl = this.getUrl({ namespace, name });

@@ -63,14 +63,14 @@ export class Drawer extends React.Component<DrawerProps> {
   componentDidMount() {
     // Using window target for events to make sure they will be catched after other places (e.g. Dialog)
     window.addEventListener("mousedown", this.onMouseDown);
-    window.addEventListener("click", this.onClickOutside);
+    window.addEventListener("click", this.onClickOutside, {capture: true});
     window.addEventListener("keydown", this.onEscapeKey);
   }
 
   componentWillUnmount() {
     this.stopListenLocation();
     window.removeEventListener("mousedown", this.onMouseDown);
-    window.removeEventListener("click", this.onClickOutside);
+    window.removeEventListener("click", this.onClickOutside, {capture: true});
     window.removeEventListener("keydown", this.onEscapeKey);
   }
 
@@ -99,8 +99,9 @@ export class Drawer extends React.Component<DrawerProps> {
   };
 
   onClickOutside = (evt: MouseEvent) => {
-    const { contentElem, mouseDownTarget, close, props: { open } } = this;
 
+    const { contentElem, mouseDownTarget, close, props: { open } } = this;
+    console.log("click outside", contentElem, mouseDownTarget, contentElem.childNodes )
     if (!open || evt.defaultPrevented || contentElem.contains(mouseDownTarget)) {
       return;
     }
@@ -139,7 +140,9 @@ export class Drawer extends React.Component<DrawerProps> {
             <div className="drawer-title flex align-center">
               <div className="drawer-title-text">{title}</div>
               {toolbar}
-              <Icon material="close" onClick={this.close}/>
+              <Icon material="close" onClick={
+                ()=>{console.log("icons");
+                      this.close();}}/>
             </div>
             <div className={contentClass} onScroll={this.saveScrollPos} ref={e => this.scrollElem = e}>
               {children}
