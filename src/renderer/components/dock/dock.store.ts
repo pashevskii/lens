@@ -273,6 +273,7 @@ export class DockStore implements DockStorageState {
       pinned,
       title
     };
+
     // add monaco model 
     if (this.usesMonacoEditor(tab)) {
       monacoModelsManager.addModel(id);

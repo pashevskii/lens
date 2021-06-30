@@ -29,6 +29,7 @@ import { disposeOnUnmount, observer } from "mobx-react";
 import { isWindows } from "../../../common/vars";
 import { AppPreferenceRegistry, RegisteredAppPreference } from "../../../extensions/registries/app-preference-registry";
 import { UserStore } from "../../../common/user-store";
+import { EditorType } from "../../../common/user-store/preferences-helpers";
 import { ThemeStore } from "../../theme.store";
 import { Input } from "../input";
 import { SubTitle } from "../layout/sub-title";
@@ -42,6 +43,7 @@ import { KubeconfigSyncs } from "./kubeconfig-syncs";
 import { SettingLayout } from "../layout/setting-layout";
 import { Checkbox } from "../checkbox";
 import { sentryDsn } from "../../../common/vars";
+import { isNumber } from "../input/input_validators";
 
 enum Pages {
   Application = "application",
@@ -52,11 +54,22 @@ enum Pages {
   Other = "other"
 }
 
+
+enum EditorLineNumbersStyles {
+  on = "On",
+  off = "Off",
+  relative = "Relative",
+  interval = "Interval"
+}
+
+
 @observer
 export class Preferences extends React.Component {
   @observable httpProxy = UserStore.getInstance().httpsProxy || "";
   @observable shell = UserStore.getInstance().shell || "";
   @observable activeTab = Pages.Application;
+  @observable activeEditorType = EditorType.TABS;
+  
 
   constructor(props: {}) {
     super(props);
@@ -69,6 +82,7 @@ export class Preferences extends React.Component {
       value: theme.id,
     }));
   }
+
 
   timezoneOptions: SelectOption<string>[] = moment.tz.names().map(zone => ({
     label: zone,
@@ -94,6 +108,10 @@ export class Preferences extends React.Component {
     this.activeTab = tabId;
   };
 
+  onEditorTypeChange = (tabId: EditorType) => {
+    this.activeEditorType = tabId;
+  };
+
   renderNavigation() {
     const extensions = AppPreferenceRegistry.getInstance().getItems().filter(e => !e.showInPreferencesTab);
 
@@ -108,6 +126,55 @@ export class Preferences extends React.Component {
           <Tab value={Pages.Extensions} label="Extensions" data-testid="extensions-tab"/>
         }
       </Tabs>
+    );
+  }
+
+  renderEditorConfiguration(editorType: EditorType) {
+
+    if (this.activeEditorType !== editorType) {
+      return null;
+    }
+
+    return (<>
+      <section>
+        <FormSwitch
+          control={
+            <Switcher
+              checked={UserStore.getInstance().isMinimapEnabled(editorType)}
+              onChange={v => UserStore.getInstance().enableMinimap(editorType, v.target.checked)}
+              name="minimap"
+            />
+          }
+          label="Show minimap"
+        />
+      </section>
+      <section>
+        <FormSwitch
+          label="Line numbers"
+          control={ 
+            <Select
+              options={Object.entries(EditorLineNumbersStyles).map(entry => ({label: entry[1], value: entry[0]}))}
+              value={UserStore.getInstance().getLineNumbers(editorType)}
+              onChange={({ value }: SelectOption) => UserStore.getInstance().setLineNumbers(editorType, value)}
+              themeName="lens"
+            /> 
+          }
+        />
+      </section>
+      <section>
+        <FormSwitch
+          label="Tab size"
+          control={ <Input
+            theme="round-black"
+            min={1}
+            max={10}
+            validators={[isNumber]}
+            value={UserStore.getInstance().getTabSize(editorType).toString()}
+            onChange={(value) => {(Number(value) || value=="") && UserStore.getInstance().setTabSize(editorType, Number(value));}}
+          />}
+        />
+      </section>  
+    </>     
     );
   }
 
@@ -195,6 +262,19 @@ export class Preferences extends React.Component {
                 onChange={({ value }: SelectOption) => UserStore.getInstance().setLocaleTimezone(value)}
                 themeName="lens"
               />
+            </section>
+            <hr/>
+            <section>
+              <SubTitle title="Editor configuration" />
+              
+              <Tabs className="flex" scrollable={false} onChange={this.onEditorTypeChange} value={this.activeEditorType}>
+                <Tab value={EditorType.TABS} label="Tabs" data-testid="editor-tabs"/>
+                <Tab value={EditorType.DETAILS} label="Details" data-testid="editor-details"/>
+                <Tab value={EditorType.KUBECONFIG} label="Kubeconfig" data-testid="editor-kubeconfig"/>
+              </Tabs>
+              {this.renderEditorConfiguration(EditorType.TABS)}
+              {this.renderEditorConfiguration(EditorType.DETAILS)}
+              {this.renderEditorConfiguration(EditorType.KUBECONFIG)}
             </section>
           </section>
         )}

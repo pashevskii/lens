@@ -24,12 +24,31 @@ import path from "path";
 import os from "os";
 import { ThemeStore } from "../../renderer/theme.store";
 import { ObservableToggleSet } from "../utils";
+import type {monaco} from "react-monaco-editor";
 
 export interface KubeconfigSyncEntry extends KubeconfigSyncValue {
   filePath: string;
 }
 
 export interface KubeconfigSyncValue { }
+
+export interface EditorConfiguration {
+  miniMap?: monaco.editor.IEditorMinimapOptions;
+  lineNumbers?: monaco.editor.LineNumbersType;
+  tabSize?: number;
+}
+
+
+export enum EditorType {
+  TABS = "tabs",
+  DETAILS = "details",
+  KUBECONFIG = "kubeconfig",
+}
+
+const defaultEditorConfig :[EditorType, EditorConfiguration][] = [
+  [EditorType.TABS, {miniMap: {enabled: true}, lineNumbers: "on", tabSize: 4}],
+  [EditorType.DETAILS, {miniMap: {enabled: false}, lineNumbers: "on", tabSize: 2}],
+  [EditorType.KUBECONFIG, {miniMap: {enabled: false}, lineNumbers: "off", tabSize: 2}]];
 
 interface PreferenceDescription<T, R = T> {
   fromStore(val: T | undefined): R;
@@ -222,6 +241,18 @@ const syncKubeconfigEntries: PreferenceDescription<KubeconfigSyncEntry[], Map<st
   },
 };
 
+const editorConfiguration: PreferenceDescription<[EditorType, EditorConfiguration][], Map<EditorType, EditorConfiguration>> = {
+  fromStore(val) {
+    return new Map(
+      (val??defaultEditorConfig).map(([type, config]) => [type, config])
+    );
+  },
+  toStore(val) {
+    return Array.from(val, ([type, config]) => ([ type, config ]));
+  },
+};
+
+
 type PreferencesModelType<field extends keyof typeof DESCRIPTORS> = typeof DESCRIPTORS[field] extends PreferenceDescription<infer T, any> ? T : never;
 type UserStoreModelType<field extends keyof typeof DESCRIPTORS> = typeof DESCRIPTORS[field] extends PreferenceDescription<any, infer T> ? T : never;
 
@@ -248,4 +279,5 @@ export const DESCRIPTORS = {
   openAtLogin,
   hiddenTableColumns,
   syncKubeconfigEntries,
+  editorConfiguration,
 };
